@@ -232,3 +232,76 @@ const GOALS = {
   {id:'a_text',i:'✍️',n:'Генератор текста',p:['web3','api1','ai1']},
   {id:'a_img',i:'🖼️',n:'Генератор изображений',p:['web3','api1','ai1']}]
 };
+
+// ---- Версия 5: полный Telegram-путь и Mini App ----
+const rx = (st, r) => re_(st, r);
+BOT.find(l => l.id === 'bot3').steps.unshift(I('Что такое Bot API','Telegram Bot API — набор правил, по которым твоя программа общается с Telegram: получает сообщения пользователей и отправляет ответы. Бот — это твой код + токен, который выдаёт BotFather.'));
+BOT.push(
+{id:'bot9',lang:'python',title:'Команды: /start, /help и свои',steps:[
+ I('Команды','Команда — сообщение, начинающееся с «/». Для каждой команды пишут свой обработчик — функцию с декоратором.'),
+ C(['@bot.message_handler(commands=["start"])','def start(m):','    bot.reply_to(m, "Привет! Напиши /help")','@bot.message_handler(commands=["help"])','def help_(m):','    bot.reply_to(m, "Команды: /start, /help, /about")'],['Реагируем на /start.','Функция получает сообщение m.','Бот отвечает на сообщение пользователя.','Реагируем на /help.','Другая функция для другой команды.','Другой ответ — так бот «знает» разные команды.'],'Каждая команда = свой обработчик и свой ответ.'),
+ rx(W('Напиши строку-обработчик команды /start',['@bot.message_handler(commands=["start"])',"@bot.message_handler(commands=['start'])"],['Начинается с @bot.message_handler','В скобках: commands=["start"]'],'@bot.message_handler(commands=["start"])'),/^@bot\.message_handler\(commands=\[(["'])start\1\]\)$/),
+ W('Своя команда /about: @bot.message_handler(commands=[____])',['"about"',"'about'"],['Название команды в кавычках, без слэша','"about"'],'"about"'),
+ Q('Что делает @bot.message_handler(commands=["help"])?',['Запускает функцию при команде /help','Создаёт бота','Удаляет сообщение'],0,'Декоратор связывает команду с функцией.')]},
+{id:'bot10',lang:'python',title:'Сообщения и форматирование',steps:[
+ I('Получить и отправить','Любое текстовое сообщение приходит в функцию как m: текст лежит в m.text, чат — в m.chat.id. Ответ отправляет bot.send_message. Текст можно форматировать через HTML.'),
+ C(['@bot.message_handler(content_types=["text"])','def echo(m):','    text = m.text.strip()','    bot.send_message(m.chat.id, "<b>Ты написал:</b> " + text, parse_mode="HTML")'],['Ловим любые текстовые сообщения.','Функция получает сообщение.','Берём текст и убираем лишние пробелы.','Отправляем ответ; parse_mode="HTML" включает теги <b>, <i>.'],'Так бот читает и обрабатывает текст пользователя.'),
+ W('Сделай текст жирным: <____>Привет</b>',['b'],['Тег жирного шрифта — одна буква','b'],'b'),
+ Q('Где лежит текст сообщения пользователя?',['m.text','m.chat','m.bot'],0,'Текст — в m.text.')]},
+{id:'bot11',lang:'python',title:'Callback: обработка нажатий',steps:[
+ I('Что происходит при нажатии','Нажатие inline-кнопки не отправляет текст. Telegram присылает боту callback с твоим callback_data. Бот обрабатывает его и может изменить сообщение.'),
+ C(['@bot.callback_query_handler(func=lambda c: c.data == "buy")','def on_buy(c):','    bot.answer_callback_query(c.id, "Добавлено!")','    bot.edit_message_text("Товар в корзине ✅", c.message.chat.id, c.message.message_id)'],['Ловим нажатие кнопки с данными buy.','Функция получает нажатие c.','Всплывающее уведомление пользователю.','Меняем текст исходного сообщения.'],'Так работают «Купить», «Далее», меню.'),
+ W('Поймай кнопку buy: func=lambda c: c.data == ____',['"buy"',"'buy'"],['Сравни с тем же значением callback_data','"buy"'],'"buy"'),
+ W('Измени текст сообщения: bot.____("Готово", c.message.chat.id, c.message.message_id)',['edit_message_text'],['Метод «редактировать текст сообщения»','edit_message_text'],'edit_message_text')]},
+{id:'bot12',lang:'python',title:'Фото и файлы',steps:[
+ I('Медиа','Бот умеет отправлять и получать фото и документы. У каждого файла в Telegram есть file_id — по нему файл можно отправить повторно без загрузки.'),
+ C(['bot.send_photo(m.chat.id, open("cat.jpg", "rb"))','bot.send_document(m.chat.id, open("price.pdf", "rb"))','@bot.message_handler(content_types=["photo"])','def get_photo(m):','    file_id = m.photo[-1].file_id','    bot.send_photo(m.chat.id, file_id)'],['Отправляем фото из файла cat.jpg рядом с main.py.','Отправляем документ.','Ловим входящие фото.','Функция получает сообщение.','Берём самую большую версию фото и её file_id.','Отправляем фото обратно по file_id.'],'file_id экономит трафик и время.'),
+ W('Отправь фото: bot.____(m.chat.id, open("cat.jpg", "rb"))',['send_photo'],['Метод «отправить фото»','send_photo'],'send_photo'),
+ Q('Что такое file_id?',['Идентификатор файла в Telegram','Пароль бота','Имя файла на ПК'],0,'По file_id файл можно отправить снова.')]},
+{id:'bot13',lang:'python',title:'🏗️ SQLite: сохраняем пользователя',steps:[
+ I('Зачем базе пользователь','Чтобы бот помнил людей: имя, настройки, прогресс. Данные пользователя берём из m.from_user и сохраняем в SQLite.'),
+ C(['import sqlite3','con = sqlite3.connect("bot.db", check_same_thread=False)','con.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)")','def save_user(m):','    con.execute("INSERT OR REPLACE INTO users VALUES (?, ?)", (m.from_user.id, m.from_user.first_name))','    con.commit()'],['Подключаем SQLite.','Открываем файл базы.','Таблица users: id и имя.','Функция сохранения.','Записываем id и имя; ? защищает от взлома.','Фиксируем изменения.'],'Теперь бот помнит пользователя после перезапуска.'),
+ W('Сохрани изменения в базе: con.____()',['commit'],['Слово означает «зафиксировать»','commit'],'commit'),
+ W('Имя пользователя в Telegram: m.from_user.____',['first_name'],['Поле с именем','first_name'],'first_name'),
+ I('Задание','В обработчик /start добавь вызов save_user(m), запусти бота и открой файл bot.db в PyCharm — там появится твоя строка.')]},
+{id:'bot14',lang:'python',title:'Запросы к внешнему API',steps:[
+ I('Бот + API','Бот может спрашивать данные у других сервисов: курс валют, погоду, шутку. В Python для этого — библиотека requests (pip install requests).'),
+ C(['import requests','r = requests.get("https://api.example.com/joke", timeout=5)','if r.status_code == 200:','    data = r.json()','    bot.send_message(m.chat.id, data["text"])','else:','    bot.send_message(m.chat.id, "Сервис недоступен")'],['Подключаем requests.','GET-запрос; timeout не даст боту зависнуть.','200 значит «всё хорошо».','Читаем JSON-ответ.','Отправляем поле text пользователю.','Иначе...','...честно сообщаем об ошибке.'],'Обработка ошибок — часть любого API-запроса.'),
+ W('Прочитай JSON-ответ: r.____()',['json'],['Метод имеет то же имя, что и формат','json'],'json'),
+ Q('Что означает status_code 200?',['Запрос успешен','Ошибка сервера','Нет интернета'],0,'200 — успех.')]},
+{id:'botfin1',lang:'python',title:'🏆 Финал: бот с /start, командами и кнопками',steps:[
+ I('Проект','Собери бота из изученного:',{items:['/start приветствует и показывает Reply-кнопки «Профиль» и «Помощь»','/help выводит список команд','Inline-кнопка «Подробнее» с callback_data','Обработчик callback меняет текст сообщения','Токен читается из os.getenv']}),
+ Q('Где должен лежать токен?',['В переменной окружения','В публичном GitHub','В названии бота'],0,'Токен — секрет.')]},
+{id:'botfin2',lang:'python',title:'🏆 Финал: бот + база данных',steps:[
+ I('Проект','Бот, который помнит пользователей:',{items:['При /start сохраняй id и имя в SQLite','Команда /me показывает сохранённое имя','Команда /count показывает число пользователей (SELECT COUNT(*) FROM users)','Проверь bot.db после запуска']}),
+ W('Посчитай строки таблицы: SELECT ____(*) FROM users',['count'],['Функция подсчёта','COUNT'],'COUNT')]});
+const MINI = T_('mini').lessons;
+MINI.push(
+{id:'mini3',lang:'javascript',title:'Кнопка «Назад» (BackButton)',steps:[
+ I('BackButton','BackButton — стрелка «назад» в шапке Mini App. Показывай её на вложенных экранах.'),
+ C(['tg.BackButton.show();','tg.BackButton.onClick(() => {','  showMainScreen();','  tg.BackButton.hide();','});'],['Показываем стрелку.','Что делать при нажатии.','Возвращаемся на главный экран.','Прячем стрелку.','Конец.'],'Пользователь всегда может вернуться.'),
+ W('Покажи кнопку «Назад»: tg.BackButton.____();',['show'],['«Показать»','show'],'show')]},
+{id:'mini4',lang:'python',title:'Подключение Mini App к боту',steps:[
+ I('Ссылка в меню бота','Mini App должен лежать по HTTPS-ссылке (GitHub Pages). Подключи её к боту:',{items:['Открой @BotFather → /mybots → выбери бота','Bot Settings → Menu Button → Configure menu button','Вставь ссылку https://имя.github.io/repo/','Введи название кнопки, например «Открыть»','Открой бота — рядом с полем ввода появится кнопка']}),
+ C(['from telebot import types','kb = types.InlineKeyboardMarkup()','kb.add(types.InlineKeyboardButton("Открыть", web_app=types.WebAppInfo("https://имя.github.io/repo/")))','bot.send_message(m.chat.id, "Мой Mini App", reply_markup=kb)'],['Подключаем типы кнопок.','Создаём клавиатуру.','Кнопка запускает Mini App по ссылке.','Отправляем сообщение с кнопкой.'],'Так Mini App запускается кнопкой из бота.'),
+ W('Тип для ссылки на Mini App: web_app=types.____("https://...")',['WebAppInfo'],['Название содержит WebApp','WebAppInfo'],'WebAppInfo')]},
+{id:'mini5',lang:'javascript',title:'Передача и хранение данных',steps:[
+ I('Где хранить данные','localStorage хранит данные только на этом устройстве. Чтобы передать данные боту, используют tg.sendData (работает для Mini App, запущенных из кнопки клавиатуры; приложение при этом закрывается). Общее хранилище между устройствами требует сервера и базы.'),
+ C(['localStorage.setItem("xp", "120");','const xp = localStorage.getItem("xp");','tg.sendData(JSON.stringify({ score: 10 }));'],['Сохраняем значение на устройстве.','Читаем его обратно.','Отправляем боту данные в виде JSON-текста.'],'Для сохранения состояния между запусками достаточно localStorage.'),
+ W('Прочитай значение: localStorage.____("xp")',['getItem'],['Слово «получить элемент»','getItem'],'getItem'),
+ Q('Где хранится localStorage?',['На устройстве пользователя','На сервере Telegram','В репозитории'],0,'Только локально.')]},
+{id:'minifin',lang:'javascript',title:'🏆 Финал: Mini App',steps:[
+ I('Проект','Создай Mini App:',{items:['Показывает имя пользователя из tg.initDataUnsafe.user','Кнопка с счётчиком, число хранится в localStorage','MainButton «Продолжить» и Haptic при нажатии','BackButton на втором экране','Опубликовано на GitHub Pages и открывается из бота']}),
+ Q('Как проверить, что всё работает?',['Открыть Mini App из бота в Telegram','Только на компьютере','Не проверять'],0,'Тестируй там, где живёт приложение.')]});
+const _B = ['bot1','bot2','bot3','bot4','bot9','bot10','bot5','bot6','bot11'], _M = ['web1','web2','web3','mini1','mini2','mini3','mini4','mini5','git1','git3','git2','minifin'];
+const gp = (k, id, p) => { GOALS[k].find(g => g.id === id).p = p; };
+gp('bot','b_simple',['bot1','bot2','bot3','bot4','bot9','bot10','bot7','bot8']);
+gp('bot','b_btn',[..._B,'bot7','botfin1','bot8']);
+gp('bot','b_chan',[..._B,'bot12','bot8']);
+gp('bot','b_game',[..._B,'bot13','botfin2','bot8']);
+gp('bot','b_pay',[..._B,'shop1','shop2','bot12','bot13','shop3','bot14','bot8','shop4']);
+gp('bot','b_mini',_M);
+gp('bot','b_ai',['bot1','bot2','bot3','bot4','bot9','bot10','bot14','api1','ai1','bot13','bot8']);
+gp('ai','a_bot',['bot1','bot2','bot3','bot4','bot9','bot10','bot14','api1','ai1','bot13','bot8']);
+gp('mini','m_app',_M);
+gp('game','g_tg',['web1','web3','game1','mini1','mini2','mini4','git1','git2']);
