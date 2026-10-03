@@ -86,7 +86,7 @@ function link(u) { tg && tg.openLink ? tg.openLink(u) : window.open(u, '_blank')
 function openLesson(tid, i) {
   const t = TRACKS.find(x => x.id === tid); regen();
   if (!open_(t, i)) { hap('n', 'warning'); return toast('🔒 Сначала пройди предыдущий урок'); }
-  L = { t, l: t.lessons[i], k: 0, h: 0, sel: null, fb: null, err: 0, first: !done(t.lessons[i].id), val: '' };
+  L = { t, l: t.lessons[i], paid: {}, k: 0, h: 0, sel: null, fb: null, err: 0, first: !done(t.lessons[i].id), val: '' };
   $('#lesson').hidden = false; try { tg.BackButton.show(); } catch (e) {} drawL();
 }
 function closeL() { $('#lesson').hidden = true; L = null; try { tg.BackButton.hide(); } catch (e) {} render(); }
@@ -109,12 +109,12 @@ function drawL() {
     if (!fb) f = `<button class="btn" onclick="L.val=$('#in').value;if(L.val.trim()){chk()?judge(true):wrong()}">Проверить</button><button class="btn ghost" style="margin-top:8px" onclick="L.val=$('#in').value;L.h=Math.min(3,L.h+1);hap('i','light');drawL()">💡 Я застрял${L.h ? ' (' + L.h + '/3)' : ''}</button>`;
   }
   if (fb) f = `<div class="fb ${fb.ok ? 'ok' : 'bad'}"><b>${fb.ok ? '✅ Правильно! ' + (fb.xp ? '+' + fb.xp + ' XP' : '') : '❌ Неправильно'}</b><p>${esc(st.e || 'Отлично, код верный!')}</p></div><button class="btn" onclick="${s.lives < 1 && !fb.ok ? 'closeL()' : 'nextS()'}">${s.lives < 1 && !fb.ok ? 'Выйти' : 'Дальше →'}</button>`;
-  $('#lesson').innerHTML = top + `<div class="lb2">${h}</div><div class="lft">${f}</div>`;
+  $('#lesson').innerHTML = top + `<div class="lb2">${h}</div><div class="lft">${f}<div class="sm"><button class="btn ghost" onclick="backS()">← Назад</button><button class="btn ghost" onclick="skipS()">Далее →</button></div></div>`;
 }
 function wrong() { L.msg = 'Пока не то. Проверь кавычки, скобки и регистр букв — или нажми «Я застрял».'; hap('n', 'warning'); drawL(); }
 function judge(ok) {
   const st = L.l.steps[L.k]; touch(); const w = st.t === 'write'; let xp = 0;
-  if (ok) { xp = L.first ? (w ? 15 : 5) : 0; L.msg = ''; s.daily.c++; if (w) s.codes++; if (st.err) s.bugs++; hap('n', 'success'); if (xp) gain(xp); if (s.daily.c >= 3 && !s.daily.done) { s.daily.done = true; gain(50); toast('🎯 Задание дня выполнено!'); confetti(30); } }
+  if (ok) { const fresh = !L.paid[L.k]; L.paid[L.k] = 1; xp = L.first && fresh ? (w ? 15 : 5) : 0; L.msg = ''; if (fresh) { s.daily.c++; if (w) s.codes++; if (st.err) s.bugs++; } hap('n', 'success'); if (xp) gain(xp); if (s.daily.c >= 3 && !s.daily.done) { s.daily.done = true; gain(50); toast('🎯 Задание дня выполнено!'); confetti(30); } }
   else { L.err++; if (s.lives === MAXL) s.livesAt = Date.now(); s.lives--; hap('n', 'error'); }
   L.fb = { ok, xp }; save(); drawL();
   if (!ok) { const z = $('#lesson'); z.style.animation = 'none'; z.offsetWidth; z.style.animation = 'shake .4s'; }
@@ -124,7 +124,7 @@ function finish() {
   const first = L.first; let b = 0, proj = false; touch();
   if (first) { s.completed_lessons.push(L.l.id); b = 30; if (!L.t.hid && L.t.lessons.every(l => done(l.id)) && !s.completed_projects.includes(L.t.id)) { s.completed_projects.push(L.t.id); b += 100; proj = true; } }
   if (b) gain(b); pathBonus(); checkAch(); save(); confetti(70); hap('n', 'success');
-  $('#lesson').innerHTML = `<div class="ov" style="position:static;flex:1"><h1>Отлично! 🎉</h1><p>Урок «${esc(L.l.title)}» пройден${L.err ? '' : ' без ошибок 💯'}</p><h2>${b ? '+' + b + ' XP' : 'Повторение'}</h2>${proj ? `<p>🏆 Проект «${esc(L.t.project)}» завершён!</p>` : ''}<button class="btn" onclick="closeL()">Продолжить</button></div>`;
+  $('#lesson').innerHTML = `<div class="ov" style="position:static;flex:1"><h1>Отлично! 🎉</h1><p>Урок «${esc(L.l.title)}» пройден${L.err ? '' : ' без ошибок 💯'}</p><h2>${b ? '+' + b + ' XP' : 'Повторение'}</h2>${proj ? `<p>🏆 Проект «${esc(L.t.project)}» завершён!</p>` : ''}<button class="btn" onclick="closeL()">Продолжить</button>${navBtns()}</div>`;
 }
 
 const LANG = { web: 'markup', bot: 'python', mini: 'javascript', game: 'javascript', ai: 'javascript', git: 'markup', db: 'python', shop: 'python' };
@@ -152,8 +152,19 @@ async function sendAI(pre) {
   s.ai.push({ r: 'u', t: pre + v }); let r; try { r = (await askAI(pre + v)).reply || AI_STUB; } catch (e) { r = AI_STUB; }
   s.ai.push({ r: 'b', t: r }); s.ai = s.ai.slice(-20); save(); render();
 }
+function nextStep() {
+  const q = s.path.length ? s.path : TRACKS.flatMap(x => x.lessons.map(l => l.id)), ci = q.findIndex(id => !done(id));
+  let m; if (ci < 0) m = '🎉 Ты дошёл до конца этого пути!';
+  else { const cur = byId(q[ci]).t.lessons[byId(q[ci]).i].title, nx = q[ci + 1] && byId(q[ci + 1]); m = 'Текущий урок: ' + cur + '\n' + (nx ? 'Следующий шаг: ' + nx.t.lessons[nx.i].title : '🎉 Это последний этап — пройди его, и ты дошёл до конца этого пути!'); }
+  s.ai.push({ r: 'b', t: '🧭 ' + m }); s.ai = s.ai.slice(-20); save(); hap('i', 'light'); render();
+}
+function seq() { return s.path.includes(L.l.id) ? s.path : L.t.lessons.map(l => l.id); }
+function nbr(d) { const q = seq(), id = q[q.indexOf(L.l.id) + d]; return id ? byId(id) : null; }
+function navBtns() { const a = nbr(-1), b = nbr(1); return `<div class="sm" style="width:100%;margin-top:6px">${a ? `<button class="btn ghost" onclick="openLesson('${a.t.id}',${a.i})">← Предыдущий</button>` : ''}${b ? `<button class="btn ghost" onclick="openLesson('${b.t.id}',${b.i})">Следующий →</button>` : ''}</div>`; }
+function backS() { hap('i', 'light'); if (L.k > 0) { L.k--; L.fb = null; L.sel = null; L.h = 0; L.val = ''; L.msg = ''; return drawL(); } const p = nbr(-1); p ? openLesson(p.t.id, p.i) : toast('Это первый этап пути'); }
+function skipS() { const st = L.l.steps[L.k]; if (st.t === 'info' || st.t === 'code' || !L.first || L.fb) return nextS(); hap('n', 'warning'); toast('Сначала выполни задание'); }
 function vAi() {
-  return `<h1>🤖 AI-наставник</h1><div class="card">${s.ai.length ? s.ai.map(m => `<p style="margin-bottom:10px;${m.r === 'u' ? 'text-align:right;color:var(--ac2)' : ''}">${m.r === 'u' ? '' : '🤖 '}${esc(m.t)}</p>`).join('') : '<p class="sub">Вставь код или опиши проблему.</p>'}</div><textarea id="ai" class="inp" rows="4" placeholder="Вставь код или вопрос"></textarea><div class="sm"><button class="btn ghost" onclick="sendAI('Объясни код: ')">Объяснить код</button><button class="btn ghost" onclick="sendAI('Найди ошибку: ')">Найти ошибку</button><button class="btn ghost" onclick="sendAI('Дай подсказку: ')">Подсказка</button></div><button class="btn" style="margin-top:8px" onclick="sendAI('')">Отправить</button>`;
+  return `<h1>🤖 AI Mentor</h1><div class="card">${s.ai.length ? s.ai.map(m => `<p style="white-space:pre-line;margin-bottom:10px;${m.r === 'u' ? 'text-align:right;color:var(--ac2)' : ''}">${m.r === 'u' ? '' : '🤖 '}${esc(m.t)}</p>`).join('') : '<p class="sub">Вставь код или опиши проблему.</p>'}</div><textarea id="ai" class="inp" rows="4" placeholder="Вставь код или вопрос"></textarea><div class="sm"><button class="btn ghost" onclick="sendAI('Дай подсказку: ')">💡 Подсказка</button><button class="btn ghost" onclick="sendAI('Объясни: ')">❓ Объяснить</button><button class="btn ghost" onclick="sendAI('Найди ошибку: ')">🐛 Найти ошибку</button><button class="btn ghost" onclick="nextStep()">➡️ Следующий шаг</button></div><button class="btn" style="margin-top:8px" onclick="sendAI('')">Отправить</button>${(() => { const n = nextL(); return n && !done(n.t.lessons[n.i].id) ? `<button class="btn ghost" style="margin-top:8px" onclick="openLesson('${n.t.id}',${n.i})">▶️ Открыть: ${esc(n.t.lessons[n.i].title)}</button>` : ''; })()}`;
 }
 s.path = s.path.filter(id => byId(id)); Object.keys(s.goals).forEach(k => { if (!goalById(s.goals[k])) delete s.goals[k]; });
 checkAch(); save(); render();
