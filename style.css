@@ -66,3 +66,10 @@ pre{background:#0a0a14;border-radius:14px;padding:14px;margin:10px 0;overflow-x:
 @keyframes drop{0%{transform:translateY(-80px)}10%,85%{transform:none}100%{transform:translateY(-80px);opacity:0}}
 .ov{position:absolute;inset:0;background:#0f0f1ae6;display:grid;place-content:center;text-align:center;gap:10px;pointer-events:auto;animation:in .3s}
 .ov h1{font-size:40px;animation:pop .8s infinite}.ov .btn{margin-top:14px}
+.cb{position:relative}.cp{position:absolute;right:8px;top:8px;border:0;border-radius:8px;background:var(--card2);color:var(--tx);padding:5px 9px;font-size:12px;z-index:1}
+.ln{padding:3px 6px;border-radius:6px;cursor:pointer;white-space:pre}.ln.on{background:#7c5cff55}
+#ex{background:var(--card);border-left:4px solid var(--ac);border-radius:12px;padding:10px 12px;margin:8px 0;font-size:14px;animation:in .25s}
+.wk{display:flex;gap:6px}.wk div{flex:1;text-align:center;font-size:12px;color:var(--mut);padding:6px 0;border-radius:10px;background:var(--card2)}.wk .on{background:var(--ac);color:#fff}
+.opt.sel{border-color:var(--ac);background:#7c5cff33}.tc{display:inline-block;background:var(--card2);border-radius:10px;padding:2px 8px;font-size:12px;margin:2px 4px 0 0}
+ol{padding-left:22px;margin:10px 0}li{margin-bottom:8px}.sm{display:flex;gap:8px;margin-top:8px}.sm .btn{padding:10px;font-size:14px}
+#nav button{font-size:10px}
