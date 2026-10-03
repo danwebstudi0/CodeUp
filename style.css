@@ -73,3 +73,4 @@ pre{background:#0a0a14;border-radius:14px;padding:14px;margin:10px 0;overflow-x:
 .opt.sel{border-color:var(--ac);background:#7c5cff33}.tc{display:inline-block;background:var(--card2);border-radius:10px;padding:2px 8px;font-size:12px;margin:2px 4px 0 0}
 ol{padding-left:22px;margin:10px 0}li{margin-bottom:8px}.sm{display:flex;gap:8px;margin-top:8px}.sm .btn{padding:10px;font-size:14px}
 #nav button{font-size:10px}
+pre .ln,pre code{background:none;text-shadow:none}.ln.on{background:#7c5cff55}textarea.inp{resize:none}
