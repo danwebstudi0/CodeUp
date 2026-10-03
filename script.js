@@ -1,5 +1,5 @@
 const tg = window.Telegram && Telegram.WebApp;
-if (tg) { tg.ready(); tg.expand(); try { tg.setHeaderColor('#0f0f1a'); tg.setBackgroundColor('#0f0f1a'); } catch (e) {} }
+if (tg) { tg.ready(); tg.expand(); try { tg.setHeaderColor('#1b1c22'); tg.setBackgroundColor('#1b1c22'); } catch (e) {} }
 const $ = q => document.querySelector(q);
 const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const hap = (k, t) => { try { k === 'n' ? tg.HapticFeedback.notificationOccurred(t) : tg.HapticFeedback.impactOccurred(t); } catch (e) {} };
@@ -28,7 +28,7 @@ function floatXP(t) { const e = document.createElement('div'); e.className = 'fl
 function confetti(n = 40) { const c = ['#7c5cff', '#4d8dff', '#ffc94d', '#2ecc8f', '#ff5b6e']; for (let i = 0; i < n; i++) { const e = document.createElement('div'); e.className = 'cf'; e.style.left = Math.random() * 100 + '%'; e.style.background = c[i % 5]; e.style.setProperty('--x', (Math.random() * 160 - 80) + 'px'); e.style.setProperty('--r', Math.random() * 720 + 'deg'); e.style.animationDelay = Math.random() * .4 + 's'; $('#fx').appendChild(e); setTimeout(() => e.remove(), 2400); } }
 function levelUp() { hap('n', 'success'); confetti(60); const o = document.createElement('div'); o.className = 'ov'; o.innerHTML = `<h1>LEVEL UP! 🎉</h1><p>Теперь у тебя уровень ${s.level}</p><button class="btn">Отлично</button>`; o.querySelector('button').onclick = () => o.remove(); $('#fx').appendChild(o); }
 function gain(n) { s.xp += n; floatXP('+' + n + ' XP'); const l = lvlOf(s.xp); if (l > s.level) { s.level = l; levelUp(); } checkAch(); }
-function checkAch() { ACHIEVEMENTS.forEach(a => { if (!s.achievements.includes(a.id) && a.ok(s)) { s.achievements.push(a.id); hap('n', 'success'); toast(a.i + ' Достижение: ' + a.n); confetti(20); } }); }
+function checkAch() { ACHIEVEMENTS.forEach(a => { if (!s.achievements.includes(a.id) && a.ok(s)) { s.achievements.push(a.id); hap('n', 'success'); toast('🏆 НОВОЕ ДОСТИЖЕНИЕ! ' + a.i + ' ' + a.n); confetti(20); } }); }
 
 // ---- экраны ----
 let tab = 'home', rk = 'world', openT = '', sub = '', ob = s.onb ? 9 : 0;
@@ -44,7 +44,7 @@ function vOb() {
   if (ob === 3) return vGoals();
   if (ob === 0) return `<div style="text-align:center;padding-top:15vh"><div style="font-size:64px" class="fire">👋</div><h1>Добро пожаловать в CodeUp</h1><p class="sub" style="margin-bottom:28px">Здесь ты научишься создавать сайты, Telegram-ботов, Mini Apps, игры и другие проекты — даже если сейчас не умеешь программировать.</p><button class="btn" onclick="ob=1;render()">Начать обучение →</button></div>`;
   if (ob === 1) return `<h1>Какой у тебя уровень?</h1>` + [['zero', '🟢 Я вообще ничего не знаю'], ['some', '🟡 Немного знаком с программированием'], ['pro', '🔵 Уже умею программировать']].map(([k, n]) => `<button class="opt ${s.pref === k ? 'sel' : ''}" style="font-family:inherit" onclick="s.pref='${k}';hap('i','light');render()">${n}</button>`).join('') + `<button class="btn" style="margin-top:10px;${s.pref ? '' : 'opacity:.4'}" onclick="if(s.pref){ob=2;render()}else toast('Сначала выбери уровень')">Дальше →</button>`;
-  return `<h1>Что хочешь создавать?</h1><p class="sub" style="margin-bottom:12px">Можно выбрать несколько направлений</p>` + TRACKS.filter(t => !t.hid).map(t => `<button class="opt ${s.selected_tracks.includes(t.id) ? 'sel' : ''}" style="font-family:inherit" onclick="pickT('${t.id}')">${t.icon} <b>${t.title}</b><br><small style="color:var(--mut)">${t.tech.join(' · ')}</small></button>`).join('') + `<button class="btn" style="margin-top:10px;${s.selected_tracks.length ? '' : 'opacity:.4'}" onclick="if(s.selected_tracks.length){ob=3;hap('i','light');render()}else toast('Сначала выбери направление')">Дальше: выбрать цель →</button>`;
+  return `<h1>Что хочешь создавать?</h1><p class="sub" style="margin-bottom:12px">Можно выбрать несколько направлений</p>` + TRACKS.filter(t => !t.hid).map(t => `<button class="opt plat p-${t.id} ${s.selected_tracks.includes(t.id) ? 'sel' : ''}" onclick="pickT('${t.id}')">${t.icon} ${DN[t.id] || t.title}<small>${DS[t.id] || t.tech.join(' · ')}</small></button>`).join('') + `<button class="btn" style="margin-top:10px;${s.selected_tracks.length ? '' : 'opacity:.4'}" onclick="if(s.selected_tracks.length){ob=3;hap('i','light');render()}else toast('Сначала выбери направление')">Дальше: выбрать цель →</button>`;
 }
 function pickT(id) { const a = s.selected_tracks, i = a.indexOf(id); i < 0 ? a.push(id) : a.splice(i, 1); hap('i', 'light'); render(); }
 const need2 = () => { const a = need(s.level), b = need(s.level + 1); return `<div class="bar"><i style="width:${(s.xp - a) / (b - a) * 100}%"></i></div><div class="sub" style="margin-top:4px">${s.xp - a} / ${b - a} XP до уровня ${s.level + 1}</div>`; };
@@ -52,9 +52,9 @@ function week() { const n = new Date(), dow = (n.getDay() + 6) % 7; return `<div
 const achRow = a => `<div class="ach ${s.achievements.includes(a.id) ? '' : 'off'}" style="margin-bottom:10px"><span class="ic">${a.i}</span><div><b>${a.n}</b><br><small>${a.d}</small></div></div>`;
 function vHome() {
   const n = nextL(), d = s.daily;
-  const hero = n ? `<div class="card hero"><div class="sub" style="color:#ffffffcc">Продолжить обучение</div><h2>${n.t.icon} ${n.t.title}</h2><p>Урок ${n.i + 1} из ${n.t.lessons.length} · ${esc(n.t.lessons[n.i].title)}</p><div class="bar" style="margin-top:10px"><i style="width:${prog(n.t) / n.t.lessons.length * 100}%"></i></div><button class="btn" onclick="openLesson('${n.t.id}',${n.i})">Продолжить →</button></div>` : `<div class="card hero"><h2>🏆 Все курсы пройдены!</h2><p>Выбери другое направление на вкладке «Путь».</p></div>`;
-  return `<div class="row" style="align-items:center;margin-bottom:14px;flex:none">${ava(s.first_name, s.avatar)}<h1 style="margin:0;flex:5">Привет, ${esc(s.first_name)} 👋</h1></div>
-  <div class="row" style="margin-bottom:14px"><div class="chip"><span class="fire">🔥</span> ${curStreak()}<small>Серия</small></div><div class="chip">⭐ ${s.xp}<small>XP</small></div><div class="chip">🏆 ${s.level}<small>Уровень</small></div></div>${hero}
+  const hero = n ? `<div class="card hero"><div class="sub" style="color:#ffffffcc">Продолжить обучение</div><h2>${n.t.icon} ${n.t.title}</h2><p>Урок ${n.i + 1} из ${n.t.lessons.length} · ${esc(n.t.lessons[n.i].title)}</p><div class="bar" style="margin-top:10px"><i style="width:${prog(n.t) / n.t.lessons.length * 100}%"></i></div><button class="btn" onclick="openLesson('${n.t.id}',${n.i})">▶ ПРОДОЛЖИТЬ СБОРКУ</button></div>` : `<div class="card hero"><h2>🏆 Все курсы пройдены!</h2><p>Выбери другое направление на вкладке «Путь».</p></div>`;
+  return `<div class="logo">🧱 CODEUP</div><p class="sub" style="text-align:center">Собери свой проект</p>${tower()}<div class="row" style="align-items:center;margin-bottom:14px;flex:none">${ava(s.first_name, s.avatar)}<h2 style="margin:0;flex:5">Привет, ${esc(s.first_name)} 👋</h2></div>
+  <div class="row" style="margin-bottom:14px"><div class="chip"><span class="fire">🔥</span> ${curStreak()}<small>Серия</small></div><div class="chip">⭐ ${s.xp}<small>XP</small></div><div class="chip">🏆 ${s.level}<small>Уровень</small></div></div>${hero}${dirs()}
   <div class="card"><h3>🎯 Задание дня</h3><p class="sub">Реши 3 задания в уроках · +50 XP</p><div class="bar" style="margin-top:10px"><i style="width:${Math.min(d.c, 3) / 3 * 100}%;background:var(--ok)"></i></div><p style="margin-top:6px">${d.done ? 'Выполнено! 🎉' : Math.min(d.c, 3) + ' / 3'}</p></div>
   <div class="card"><h3>Серия</h3>${week()}</div><button class="btn ghost" style="margin-bottom:14px" onclick="go('ai')">🤖 AI-наставник</button><div class="card"><h3>Достижения</h3>${ACHIEVEMENTS.slice(0, 3).map(achRow).join('')}</div>`;
 }
@@ -72,11 +72,11 @@ function vRank() {
 }
 function vMe() {
   const techs = TRACKS.filter(t => prog(t) > 0).flatMap(t => t.tech);
-  return `<div class="card" style="text-align:center">${ava(s.first_name, s.avatar, 'big')}<h2>${esc(s.first_name)}</h2><p class="sub">${s.username ? '@' + esc(s.username) : ''}</p><p style="margin:8px 0">Level ${s.level} · ${s.xp} XP</p>${need2()}</div>
+  return `<div class="card" style="text-align:center"><div class="logo" style="font-size:20px">🧑‍💻 CODEUP</div>${ava(s.first_name, s.avatar, 'big')}<h2>${esc(s.first_name)}</h2><p class="sub">${s.username ? '@' + esc(s.username) : ''}</p><p style="margin:8px 0">Level ${s.level} · ${s.xp} XP</p>${need2()}</div>
   <div class="row" style="margin-bottom:14px"><div class="chip">🔥 ${curStreak()}<small>дней</small></div><div class="chip">📚 ${s.completed_lessons.length}<small>уроков</small></div><div class="chip">🏗️ ${s.completed_projects.length}<small>проектов</small></div></div>
   <div class="card"><b>Изученные технологии</b><div>${techs.length ? [...new Set(techs)].map(x => `<span class="tc">${x}</span>`).join('') : '<p class="sub">Пока пусто — пройди первый урок</p>'}</div></div>
   <div class="card"><b>❤️ Жизни: ${s.lives} / ${MAXL}</b><p class="sub">Жизнь восстанавливается за 15 минут. Теряются только за ошибки в вопросах.</p></div>
-  <div class="card"><h3>Достижения</h3>${ACHIEVEMENTS.map(achRow).join('')}</div>
+  <div class="card"><h3>Коллекция значков</h3><div class="badges">${ACHIEVEMENTS.map(badge).join('')}</div></div>
   <button class="btn ghost" onclick="ob=1;render()">Изменить уровень и цели</button>`;
 }
 
@@ -97,7 +97,7 @@ function drawL() {
   const top = `<div class="lt"><button class="x" onclick="closeL()">✕</button><div class="bar"><i style="width:${L.k / T.length * 100}%"></i></div><b>❤️ ${s.lives}</b></div>`;
   const nx = `<button class="btn" onclick="nextS()">${st.items ? 'Готово ✓' : 'Дальше →'}</button>`;
   if (st.t === 'info') {
-    h = `<div class="tag">${esc(L.l.title)}</div><h2>${esc(st.h)}</h2><p>${esc(st.p)}</p>` + (st.n && s.pref === 'zero' ? `<div class="fb ok" style="margin-top:10px">💡 ${esc(st.n)}</div>` : '') + (st.items ? `<ol>${st.items.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : '') + (st.p2 ? `<p class="sub">${esc(st.p2)}</p>` : '');
+    h = `<div class="tag">🧱 НОВЫЙ БЛОК</div><h2>${esc(L.l.title)}</h2>${L.k === 0 ? '<p class="sub">Что ты сейчас построишь? Теория → пример → практика → проверка.</p>' : ''}<h3>${esc(st.h)}</h3><p>${esc(st.p)}</p>` + (st.n && s.pref === 'zero' ? `<div class="fb ok" style="margin-top:10px">💡 ${esc(st.n)}</div>` : '') + (st.items ? `<ol>${st.items.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : '') + (st.p2 ? `<p class="sub">${esc(st.p2)}</p>` : '');
     f = (st.link ? `<button class="btn ghost" style="margin-bottom:8px" onclick="link('${st.link[1]}')">${st.link[0]} ↗</button>` : '') + nx;
   } else if (st.t === 'code') {
     h = `<div class="tag">Разбор кода</div><h3>Нажимай на строки — я объясню</h3><div class="cb"><button class="cp" onclick="navigator.clipboard&&navigator.clipboard.writeText(L.l.steps[L.k].code.join('\\n'));toast('✅ Код скопирован')">📋 Копировать</button><pre>${st.code.map((c, i) => `<div class="ln ${L.sel === i ? 'on' : ''}" onclick="L.sel=${i};hap('i','light');drawL()">${hl(c)}</div>`).join('')}</pre></div><div id="ex">${L.sel != null ? esc(st.ex[L.sel]) : 'Выбери строку выше 👆'}</div><div class="sm"><button class="btn ghost" onclick="L.sel=null;$('#ex').textContent=L.l.steps[L.k].why">Почему это нужно?</button></div>`;
@@ -105,10 +105,10 @@ function drawL() {
   } else if (st.t === 'quiz') {
     h = `<div class="tag">${st.err ? '🐞 Найди ошибку' : '🎯 Проверь себя'}</div><h3>${esc(st.q)}</h3>` + st.o.map((o, j) => `<button class="opt ${fb ? (j === st.a ? 'ok' : j === L.sel ? 'bad' : '') : ''}" ${fb ? 'disabled' : ''} onclick="L.sel=${j};judge(${j === st.a})">${esc(o)}</button>`).join('');
   } else {
-    h = `<div class="tag">💻 Практика</div><h3>${esc(st.q)}</h3>` + (st.code ? `<pre>${hl(st.code)}</pre>` : '') + `<input id="in" class="inp" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Пиши код здесь" value="${esc(L.val)}" ${fb && fb.ok ? 'disabled' : ''}>` + (L.msg ? `<div class="fb bad" style="margin-top:10px">${esc(L.msg)}</div>` : '') + (L.h ? `<div class="fb ok" style="margin-top:10px">💡 ${L.h >= 3 ? 'Решение: <code>' + esc(st.sol) + '</code>' : 'Подсказка ' + L.h + ': ' + esc(st.hints[L.h - 1])}</div>` : '');
+    h = `<div class="tag">🔨 СОБЕРИ БЛОК</div><h3>${esc(st.q)}</h3>` + (st.code ? `<pre>${hl(st.code)}</pre>` : '') + `<input id="in" class="inp" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Пиши код здесь" value="${esc(L.val)}" ${fb && fb.ok ? 'disabled' : ''}>` + (L.msg ? `<div class="fb bad" style="margin-top:10px">${esc(L.msg)}</div>` : '') + (L.h ? `<div class="fb ok" style="margin-top:10px">💡 ${L.h >= 3 ? 'Решение: <code>' + esc(st.sol) + '</code>' : 'Подсказка ' + L.h + ': ' + esc(st.hints[L.h - 1])}</div>` : '');
     if (!fb) f = `<button class="btn" onclick="L.val=$('#in').value;if(L.val.trim()){chk()?judge(true):wrong()}">Проверить</button><button class="btn ghost" style="margin-top:8px" onclick="L.val=$('#in').value;L.h=Math.min(3,L.h+1);hap('i','light');drawL()">💡 Я застрял${L.h ? ' (' + L.h + '/3)' : ''}</button>`;
   }
-  if (fb) f = `<div class="fb ${fb.ok ? 'ok' : 'bad'}"><b>${fb.ok ? '✅ Правильно! ' + (fb.xp ? '+' + fb.xp + ' XP' : '') : '❌ Неправильно'}</b><p>${esc(st.e || 'Отлично, код верный!')}</p></div><button class="btn" onclick="${s.lives < 1 && !fb.ok ? 'closeL()' : 'nextS()'}">${s.lives < 1 && !fb.ok ? 'Выйти' : 'Дальше →'}</button>`;
+  if (fb) f = `<div class="fb ${fb.ok ? 'ok' : 'bad'}"><b>${fb.ok ? '🧱 БЛОК СОБРАН! ' + (fb.xp ? '+' + fb.xp + ' XP' : '') : '❌ Неправильно'}</b><p>${esc(st.e || 'Отлично, код верный!')}</p></div><button class="btn" onclick="${s.lives < 1 && !fb.ok ? 'closeL()' : 'nextS()'}">${s.lives < 1 && !fb.ok ? 'Выйти' : 'Дальше →'}</button>`;
   $('#lesson').innerHTML = top + `<div class="lb2">${h}</div><div class="lft">${f}<div class="sm"><button class="btn ghost" onclick="backS()">← Назад</button><button class="btn ghost" onclick="skipS()">Далее →</button></div></div>`;
 }
 function wrong() { L.msg = 'Пока не то. Проверь кавычки, скобки и регистр букв — или нажми «Я застрял».'; hap('n', 'warning'); drawL(); }
@@ -124,7 +124,7 @@ function finish() {
   const first = L.first; let b = 0, proj = false; touch();
   if (first) { s.completed_lessons.push(L.l.id); b = 30; if (!L.t.hid && L.t.lessons.every(l => done(l.id)) && !s.completed_projects.includes(L.t.id)) { s.completed_projects.push(L.t.id); b += 100; proj = true; } }
   if (b) gain(b); pathBonus(); checkAch(); save(); confetti(70); hap('n', 'success');
-  $('#lesson').innerHTML = `<div class="ov" style="position:static;flex:1"><h1>Отлично! 🎉</h1><p>Урок «${esc(L.l.title)}» пройден${L.err ? '' : ' без ошибок 💯'}</p><h2>${b ? '+' + b + ' XP' : 'Повторение'}</h2>${proj ? `<p>🏆 Проект «${esc(L.t.project)}» завершён!</p>` : ''}<button class="btn" onclick="closeL()">Продолжить</button>${navBtns()}</div>`;
+  $('#lesson').innerHTML = `<div class="ov" style="position:static;flex:1"><div class="drop">🧱</div><h1>Блок добавлен!</h1><p>Урок «${esc(L.l.title)}» пройден${L.err ? '' : ' без ошибок 💯'}</p><h2>${b ? '+' + b + ' XP' : 'Повторение'}</h2>${proj ? `<p>🏆 Проект «${esc(L.t.project)}» завершён!</p>` : ''}<button class="btn" onclick="closeL()">Продолжить</button>${navBtns()}</div>`;
 }
 
 const LANG = { web: 'markup', bot: 'python', mini: 'javascript', game: 'javascript', ai: 'javascript', git: 'markup', db: 'python', shop: 'python' };
@@ -132,7 +132,7 @@ function chk() { const st = L.l.steps[L.k], v = norm(L.val); return st.ans.map(n
 function hl(c) { const g = L.l.lang || LANG[L.t.id] || 'markup'; try { return Prism.highlight(c, Prism.languages[g], g); } catch (e) { return esc(c); } }
 function goalById(id) { for (const k in GOALS) { const g = GOALS[k].find(x => x.id === id); if (g) return g; } return null; }
 function vGoals() {
-  return `<h1>Что ты хочешь создать?</h1>` + s.selected_tracks.map(tid => { const t = TRACKS.find(x => x.id === tid); return `<h3>${t.icon} ${t.title}</h3>` + GOALS[tid].map(g => `<button class="opt ${s.goals[tid] === g.id ? 'sel' : ''}" style="font-family:inherit" onclick="s.goals['${tid}']='${g.id}';hap('i','light');render()">${g.i} ${g.n}</button>`).join(''); }).join('') + `<button class="btn" style="margin-top:10px;${s.selected_tracks.every(t => s.goals[t]) ? '' : 'opacity:.4'}" onclick="buildPath()">Построить путь →</button>`;
+  return `<h1>Что будем строить? 🧱</h1>` + s.selected_tracks.map(tid => { const t = TRACKS.find(x => x.id === tid); return `<h3>${t.icon} ${t.title}</h3>` + GOALS[tid].map(g => `<button class="opt ${s.goals[tid] === g.id ? 'sel' : ''}" style="font-family:inherit" onclick="s.goals['${tid}']='${g.id}';hap('i','light');render()">${g.i} ${g.n}</button>`).join(''); }).join('') + `<button class="btn" style="margin-top:10px;${s.selected_tracks.every(t => s.goals[t]) ? '' : 'opacity:.4'}" onclick="buildPath()">Построить путь →</button>`;
 }
 function buildPath() {
   if (!s.selected_tracks.length) { toast('Сначала выбери направление'); ob = 2; return render(); }
@@ -141,7 +141,7 @@ function buildPath() {
 function vMyPath() {
   if (!s.path.length) return `<h1>Мой путь</h1><div class="card"><p>Выбери, что хочешь создать, и я построю путь.</p><button class="btn" style="margin-top:10px" onclick="ob=2;render()">Выбрать цель</button></div>`;
   const d = s.path.filter(done).length, pc = Math.round(d / s.path.length * 100), nm = Object.values(s.goals).map(goalById).filter(Boolean).map(g => g.i + ' ' + g.n).join(', ');
-  return `<h1>🚀 Мой путь</h1><div class="card"><b>🎯 Моя цель: ${esc(nm)}</b><div class="bar" style="margin:10px 0"><i style="width:${pc}%;background:var(--ok)"></i></div><p class="sub">${d}/${s.path.length} этапов · ${pc}%</p></div>` + s.path.map((id, i) => { const r = byId(id), dn = done(id), lk = !open_(r.t, r.i); return `<div class="card sec ${dn ? 'done' : ''} ${lk ? 'lock' : ''}" onclick="openLesson('${r.t.id}',${r.i})"><div class="n">${dn ? '✓' : lk ? '🔒' : i + 1}</div><div><b>${esc(r.t.lessons[r.i].title)}</b><div class="sub">${dn ? '✅ Пройдено' : lk ? '🔒 Заблокировано' : '▶️ Доступно'}</div></div></div>`; }).join('') + `<button class="btn ghost" style="margin-bottom:18px" onclick="ob=2;render()">Изменить цель</button>`;
+  return `<h1>🚀 Мой путь</h1><div class="card"><b>🎯 Моя цель: ${esc(nm)}</b><div class="bar" style="margin:10px 0"><i style="width:${pc}%;background:var(--ok)"></i></div><p class="sub">${d}/${s.path.length} этапов · ${pc}%</p></div><div class="trail">` + s.path.map((id, i) => { const r = byId(id), dn = done(id), lk = !open_(r.t, r.i); return `<div class="card sec ${dn ? 'done' : ''} ${lk ? 'lock' : ''} ${!dn && !lk ? 'cur' : ''}" onclick="openLesson('${r.t.id}',${r.i})"><div class="n">${dn ? '✓' : lk ? '🔒' : i + 1}</div><div><b>${esc(r.t.lessons[r.i].title)}</b><div class="sub">${dn ? '✅ Пройдено' : lk ? '🔒 Заблокировано' : '▶️ Доступно'}</div></div></div>`; }).join('') + `</div>${finalBrick()}<button class="btn ghost" style="margin-bottom:18px" onclick="ob=2;render()">Изменить цель</button>`;
 }
 function pathBonus() { const k = s.path.join(); s.pd = s.pd || []; if (s.path.length && s.path.every(done) && !s.pd.includes(k)) { s.pd.push(k); gain(150); toast('🏆 Твой проект готов! +150 XP'); } }
 // BACKEND: AI работает через POST /api/ai (ключ AI хранится только на сервере)
@@ -163,6 +163,19 @@ function nbr(d) { const q = seq(), id = q[q.indexOf(L.l.id) + d]; return id ? by
 function navBtns() { const a = nbr(-1), b = nbr(1); return `<div class="sm" style="width:100%;margin-top:6px">${a ? `<button class="btn ghost" onclick="openLesson('${a.t.id}',${a.i})">← Предыдущий</button>` : ''}${b ? `<button class="btn ghost" onclick="openLesson('${b.t.id}',${b.i})">Следующий →</button>` : ''}</div>`; }
 function backS() { hap('i', 'light'); if (L.k > 0) { L.k--; L.fb = null; L.sel = null; L.h = 0; L.val = ''; L.msg = ''; return drawL(); } const p = nbr(-1); p ? openLesson(p.t.id, p.i) : toast('Это первый этап пути'); }
 function skipS() { const st = L.l.steps[L.k]; if (st.t === 'info' || st.t === 'code' || !L.first || L.fb) return nextS(); hap('n', 'warning'); toast('Сначала выполни задание'); }
+const DN = { web: 'WEB', bot: 'TELEGRAM', game: 'GAMES', ai: 'AI', mini: 'MINI APPS' };
+const DS = { web: 'Строй сайты', bot: 'Создавай ботов и Mini Apps', game: 'Создавай игры', ai: 'Создавай AI-приложения', mini: 'Mini Apps внутри Telegram' };
+function badge(a) { return `<div class="bdg ${s.achievements.includes(a.id) ? 'on' : ''}"><span>${a.i}</span><small>${a.n}</small></div>`; }
+function dirs() { return `<div class="dirs">${[['web', '🟨', 'WEB', 'y'], ['bot', '🟦', 'TELEGRAM', 'b'], ['game', '🟩', 'GAMES', 'g'], ['ai', '🟥', 'AI', 'r']].map(([k, e, n, c]) => `<button class="dir ${c}" onclick="openT='${k}';go('path')">${e}<b>${n}</b></button>`).join('')}</div>`; }
+function tower() {
+  const p = s.path.length ? s.path.filter(done).length / s.path.length : Math.min(1, s.completed_lessons.length / 10), on = Math.round(p * 10), cols = ['#e3000b', '#006db7', '#00a651', '#ffd500', '#ff8a00']; let i = 0; const rs = [];
+  [4, 3, 2, 1].forEach(n => { const r = []; for (let k = 0; k < n; k++) { r.push(`<i class="tb" style="${i < on ? 'background:' + cols[i % 5] : ''}"></i>`); i++; } rs.push(`<div class="tr">${r.join('')}</div>`); });
+  return `<div class="tw">${rs.reverse().join('')}</div>`;
+}
+function finalBrick() {
+  if (s.path.length && s.path.every(done)) return `<div class="card hero" style="text-align:center"><h2>🎉 ПРОЕКТ СОБРАН!</h2><p>Все блоки знаний на месте.</p><button class="btn" onclick="toast('Готовой ссылки пока нет: опубликуй проект на GitHub Pages и открой его по своему адресу')">🚀 ОТКРЫТЬ ПРОЕКТ</button></div>`;
+  return `<div class="goalbrick">🏗️ ПРОЕКТ<br><small>откроется, когда соберёшь все блоки</small></div>`;
+}
 function vAi() {
   return `<h1>🤖 AI Mentor</h1><div class="card">${s.ai.length ? s.ai.map(m => `<p style="white-space:pre-line;margin-bottom:10px;${m.r === 'u' ? 'text-align:right;color:var(--ac2)' : ''}">${m.r === 'u' ? '' : '🤖 '}${esc(m.t)}</p>`).join('') : '<p class="sub">Вставь код или опиши проблему.</p>'}</div><textarea id="ai" class="inp" rows="4" placeholder="Вставь код или вопрос"></textarea><div class="sm"><button class="btn ghost" onclick="sendAI('Дай подсказку: ')">💡 Подсказка</button><button class="btn ghost" onclick="sendAI('Объясни: ')">❓ Объяснить</button><button class="btn ghost" onclick="sendAI('Найди ошибку: ')">🐛 Найти ошибку</button><button class="btn ghost" onclick="nextStep()">➡️ Следующий шаг</button></div><button class="btn" style="margin-top:8px" onclick="sendAI('')">Отправить</button>${(() => { const n = nextL(); return n && !done(n.t.lessons[n.i].id) ? `<button class="btn ghost" style="margin-top:8px" onclick="openLesson('${n.t.id}',${n.i})">▶️ Открыть: ${esc(n.t.lessons[n.i].title)}</button>` : ''; })()}`;
 }
