@@ -74,3 +74,4 @@ pre{background:#0a0a14;border-radius:14px;padding:14px;margin:10px 0;overflow-x:
 ol{padding-left:22px;margin:10px 0}li{margin-bottom:8px}.sm{display:flex;gap:8px;margin-top:8px}.sm .btn{padding:10px;font-size:14px}
 #nav button{font-size:10px}
 pre .ln,pre code{background:none;text-shadow:none}.ln.on{background:#7c5cff55}textarea.inp{resize:none}
+pre{max-width:100%;-webkit-overflow-scrolling:touch}.sm{flex-wrap:wrap}.sm .btn{flex:1 1 45%;min-width:0}.card,.fb,#ex{overflow-wrap:anywhere}.lb2{overflow-x:hidden}
