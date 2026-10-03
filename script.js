@@ -5,130 +5,123 @@ const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 const hap = (k, t) => { try { k === 'n' ? tg.HapticFeedback.notificationOccurred(t) : tg.HapticFeedback.impactOccurred(t); } catch (e) {} };
 const tu = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || { id: 0, first_name: 'Друг', username: '' };
 const MAXL = 5, REGEN = 15 * 60000;
-
-// BACKEND: замените load/save на fetch('/api/user') — остальной код менять не нужно
-const Api = {
-  key: 'codeup_' + tu.id,
-  load() { try { return JSON.parse(localStorage.getItem(this.key)); } catch (e) { return null; } },
-  save(s) { try { localStorage.setItem(this.key, JSON.stringify(s)); } catch (e) {} }
-};
-
+// BACKEND: замените load/save на fetch('/api/user')
+const Api = { key: 'codeup2_' + tu.id, load() { try { return JSON.parse(localStorage.getItem(this.key)); } catch (e) { return null; } }, save(s) { try { localStorage.setItem(this.key, JSON.stringify(s)); } catch (e) {} } };
 const day = (o = 0) => { const d = new Date(); d.setDate(d.getDate() + o); return d.toISOString().slice(0, 10); };
-let s = Api.load() || { telegram_id: tu.id, xp: 0, level: 1, streak: 0, last_activity: null, lives: MAXL, livesAt: Date.now(), completed_lessons: [], achievements: [], perfect: 0, daily: { d: '', c: 0, done: false } };
+let s = Api.load() || { telegram_id: tu.id, xp: 0, level: 1, streak: 0, last_activity: null, lives: MAXL, livesAt: Date.now(), completed_lessons: [], completed_projects: [], achievements: [], skills: [], selected_tracks: [], pref: '', onb: 0, codes: 0, bugs: 0, days: [], daily: { d: '', c: 0, done: false } };
 s.first_name = tu.first_name; s.username = tu.username || ''; s.avatar = tu.photo_url || '';
 if (s.daily.d !== day()) s.daily = { d: day(), c: 0, done: false };
 const save = () => Api.save(s);
-const need = l => 25 * (l - 1) * (l + 2);               // 0,100,250,450,700...
-const lvlOf = x => { let l = 1; while (x >= need(l + 1)) l++; return l; };
+const need = l => 25 * (l - 1) * (l + 2), lvlOf = x => { let l = 1; while (x >= need(l + 1)) l++; return l; };
 const curStreak = () => [day(), day(-1)].includes(s.last_activity) ? s.streak : 0;
+const done = id => s.completed_lessons.includes(id);
+const open_ = (t, i) => i === 0 || done(t.lessons[i - 1].id);
+const prog = t => t.lessons.filter(l => done(l.id)).length;
 function regen() { const n = Date.now(); if (s.lives >= MAXL) { s.livesAt = n; return; } while (s.lives < MAXL && n - s.livesAt >= REGEN) { s.lives++; s.livesAt += REGEN; } if (s.lives >= MAXL) s.livesAt = n; }
-function touch() { const t = day(); if (s.daily.d !== t) s.daily = { d: t, c: 0, done: false }; if (s.last_activity === t) return; s.streak = s.last_activity === day(-1) ? s.streak + 1 : 1; s.last_activity = t; toast('🔥 Серия: ' + s.streak); }
+function touch() { const t = day(); if (s.daily.d !== t) s.daily = { d: t, c: 0, done: false }; if (s.last_activity === t) return; s.streak = s.last_activity === day(-1) ? s.streak + 1 : 1; s.last_activity = t; s.days.push(t); toast('🔥 Серия: ' + s.streak); }
+function nextL() { const ts = s.selected_tracks.length ? TRACKS.filter(t => s.selected_tracks.includes(t.id)) : TRACKS; for (const t of ts) { const i = t.lessons.findIndex(l => !done(l.id)); if (i >= 0) return { t, i }; } return null; }
 
-// ---------- эффекты ----------
+// ---- эффекты ----
 function toast(m) { const e = document.createElement('div'); e.className = 'toast'; e.textContent = m; $('#fx').appendChild(e); setTimeout(() => e.remove(), 2700); }
 function floatXP(t) { const e = document.createElement('div'); e.className = 'fl'; e.textContent = t; e.style.left = (innerWidth / 2 - 30) + 'px'; e.style.top = (innerHeight - 160) + 'px'; $('#fx').appendChild(e); setTimeout(() => e.remove(), 1100); }
-function confetti(n = 40) { const c = ['#7c5cff', '#4d8dff', '#ffc94d', '#2ecc8f', '#ff5b6e']; for (let i = 0; i < n; i++) { const e = document.createElement('div'); e.className = 'cf'; e.style.left = Math.random() * 100 + '%'; e.style.background = c[i % 5]; e.style.setProperty('--x', (Math.random() * 160 - 80) + 'px'); e.style.setProperty('--r', (Math.random() * 720) + 'deg'); e.style.animationDelay = Math.random() * .4 + 's'; $('#fx').appendChild(e); setTimeout(() => e.remove(), 2400); } }
+function confetti(n = 40) { const c = ['#7c5cff', '#4d8dff', '#ffc94d', '#2ecc8f', '#ff5b6e']; for (let i = 0; i < n; i++) { const e = document.createElement('div'); e.className = 'cf'; e.style.left = Math.random() * 100 + '%'; e.style.background = c[i % 5]; e.style.setProperty('--x', (Math.random() * 160 - 80) + 'px'); e.style.setProperty('--r', Math.random() * 720 + 'deg'); e.style.animationDelay = Math.random() * .4 + 's'; $('#fx').appendChild(e); setTimeout(() => e.remove(), 2400); } }
 function levelUp() { hap('n', 'success'); confetti(60); const o = document.createElement('div'); o.className = 'ov'; o.innerHTML = `<h1>LEVEL UP! 🎉</h1><p>Теперь у тебя уровень ${s.level}</p><button class="btn">Отлично</button>`; o.querySelector('button').onclick = () => o.remove(); $('#fx').appendChild(o); }
 function gain(n) { s.xp += n; floatXP('+' + n + ' XP'); const l = lvlOf(s.xp); if (l > s.level) { s.level = l; levelUp(); } checkAch(); }
 function checkAch() { ACHIEVEMENTS.forEach(a => { if (!s.achievements.includes(a.id) && a.ok(s)) { s.achievements.push(a.id); hap('n', 'success'); toast(a.i + ' Достижение: ' + a.n); confetti(20); } }); }
 
-// ---------- экраны ----------
-let tab = 'home', sub = '', rk = 'world';
-const nextLesson = () => { const i = COURSE.findIndex((_, j) => !s.completed_lessons.includes(j)); return i < 0 ? COURSE.length - 1 : i; };
-function ava(name, url, cls = '') { return `<div class="ava ${cls}" style="${url ? `background-image:url(${esc(url)})` : ''}">${url ? '' : esc((name || '?')[0])}</div>`; }
+// ---- экраны ----
+let tab = 'home', rk = 'world', openT = '', sub = '', ob = s.onb ? 9 : 0;
+function ava(n, u, c = '') { return `<div class="ava ${c}" style="${u ? `background-image:url(${esc(u)})` : ''}">${u ? '' : esc((n || '?')[0])}</div>`; }
 function render() {
-  regen();
-  $('#nav').innerHTML = [['home', '🏠', 'Главная'], ['learn', '📚', 'Учёба'], ['rank', '🏆', 'Рейтинг'], ['me', '👤', 'Профиль']].map(([k, i, n]) => `<button class="${tab === k ? 'on' : ''}" onclick="go('${k}')"><span>${i}</span>${n}</button>`).join('');
-  const a = $('#app'); a.style.animation = 'none'; a.offsetWidth; a.style.animation = '';
-  a.innerHTML = { home: vHome, learn: vLearn, rank: vRank, me: vMe }[tab]();
+  regen(); const a = $('#app'); a.style.animation = 'none'; a.offsetWidth; a.style.animation = '';
+  if (ob < 3) { $('#nav').innerHTML = ''; a.innerHTML = vOb(); return; }
+  $('#nav').innerHTML = [['home', '🏠', 'Главная'], ['path', '🧭', 'Путь'], ['proj', '🏗️', 'Проекты'], ['rank', '🏆', 'Рейтинг'], ['me', '👤', 'Профиль']].map(([k, i, n]) => `<button class="${tab === k ? 'on' : ''}" onclick="go('${k}')"><span>${i}</span>${n}</button>`).join('');
+  a.innerHTML = { home: vHome, path: vPath, proj: vProj, rank: vRank, me: vMe }[tab]();
 }
 function go(t) { tab = t; sub = ''; hap('i', 'light'); render(); scrollTo(0, 0); }
-function xpBar() { const a = need(s.level), b = need(s.level + 1); return `<div class="bar"><i style="width:${(s.xp - a) / (b - a) * 100}%"></i></div><div class="sub" style="margin-top:4px">${s.xp - a} / ${b - a} XP до уровня ${s.level + 1}</div>`; }
-function vHome() {
-  const i = nextLesson(), done = s.completed_lessons.length, d = s.daily;
-  return `<h1>Привет, ${esc(s.first_name)} 👋</h1>
-  <div class="row" style="margin-bottom:14px"><div class="chip"><span class="fire">🔥</span> ${curStreak()}<small>Серия</small></div><div class="chip">⭐ ${s.xp}<small>XP</small></div><div class="chip">🏆 ${s.level}<small>Уровень</small></div></div>
-  <div class="card hero"><div class="sub" style="color:#ffffffcc">Продолжить обучение</div><h2>🐍 Python</h2><p>Урок ${Math.min(done + 1, COURSE.length)} из ${COURSE.length} · ${esc(COURSE[i].title)}</p>
-  <div class="bar" style="margin-top:10px"><i style="width:${done / COURSE.length * 100}%"></i></div><button class="btn" onclick="openLesson(${i})">Продолжить →</button></div>
-  <div class="card"><h3>🎯 Задание дня</h3><p class="sub">Ответь правильно на 5 вопросов · +50 XP</p><div class="bar" style="margin-top:10px"><i style="width:${Math.min(d.c, 5) / 5 * 100}%;background:var(--ok)"></i></div><p style="margin-top:6px">${d.done ? 'Выполнено! 🎉' : Math.min(d.c, 5) + ' / 5'}</p></div>
-  <div class="card"><h3>Твои достижения</h3>${ACHIEVEMENTS.slice(0, 3).map(achRow).join('')}</div>`;
+function vOb() {
+  if (ob === 0) return `<div style="text-align:center;padding-top:15vh"><div style="font-size:64px" class="fire">👋</div><h1>Добро пожаловать в CodeUp</h1><p class="sub" style="margin-bottom:28px">Здесь ты научишься создавать сайты, Telegram-ботов, Mini Apps, игры и другие проекты — даже если сейчас не умеешь программировать.</p><button class="btn" onclick="ob=1;render()">Начать обучение →</button></div>`;
+  if (ob === 1) return `<h1>Какой у тебя уровень?</h1>` + [['zero', '🟢 Я вообще ничего не знаю'], ['some', '🟡 Немного знаком с программированием'], ['pro', '🔵 Уже умею программировать']].map(([k, n]) => `<button class="opt ${s.pref === k ? 'sel' : ''}" style="font-family:inherit" onclick="s.pref='${k}';hap('i','light');render()">${n}</button>`).join('') + `<button class="btn" style="margin-top:10px;${s.pref ? '' : 'opacity:.4'}" onclick="if(s.pref){ob=2;render()}">Дальше →</button>`;
+  return `<h1>Что хочешь создавать?</h1><p class="sub" style="margin-bottom:12px">Можно выбрать несколько направлений</p>` + TRACKS.map(t => `<button class="opt ${s.selected_tracks.includes(t.id) ? 'sel' : ''}" style="font-family:inherit" onclick="pickT('${t.id}')">${t.icon} <b>${t.title}</b><br><small style="color:var(--mut)">${t.tech.join(' · ')}</small></button>`).join('') + `<button class="btn" style="margin-top:10px;${s.selected_tracks.length ? '' : 'opacity:.4'}" onclick="if(s.selected_tracks.length){ob=3;s.onb=1;save();hap('n','success');confetti();tab='home';render()}">Построить мой путь →</button>`;
 }
-function vLearn() {
-  return `<h1>Учёба</h1><div class="card"><h2>🐍 Python с нуля</h2><p class="sub">${s.completed_lessons.length} из ${COURSE.length} уроков</p></div>` + COURSE.map((l, i) => {
-    const dn = s.completed_lessons.includes(i), lk = i > 0 && !s.completed_lessons.includes(i - 1), cur = !dn && !lk;
-    return `<div class="card sec ${dn ? 'done' : ''} ${lk ? 'lock' : ''} ${cur ? 'cur' : ''}" onclick="openLesson(${i})"><div class="n">${dn ? '✓' : lk ? '🔒' : i + 1}</div><div><b>${esc(l.title)}</b><div class="sub">Раздел ${i + 1} · +130 XP</div></div></div>`;
-  }).join('');
+function pickT(id) { const a = s.selected_tracks, i = a.indexOf(id); i < 0 ? a.push(id) : a.splice(i, 1); hap('i', 'light'); render(); }
+const need2 = () => { const a = need(s.level), b = need(s.level + 1); return `<div class="bar"><i style="width:${(s.xp - a) / (b - a) * 100}%"></i></div><div class="sub" style="margin-top:4px">${s.xp - a} / ${b - a} XP до уровня ${s.level + 1}</div>`; };
+function week() { const n = new Date(), dow = (n.getDay() + 6) % 7; return `<div class="wk">${['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((d, i) => `<div class="${s.days.includes(day(i - dow)) ? 'on' : ''}">${d}<br>${s.days.includes(day(i - dow)) ? '🔥' : '·'}</div>`).join('')}</div>`; }
+const achRow = a => `<div class="ach ${s.achievements.includes(a.id) ? '' : 'off'}" style="margin-bottom:10px"><span class="ic">${a.i}</span><div><b>${a.n}</b><br><small>${a.d}</small></div></div>`;
+function vHome() {
+  const n = nextL(), d = s.daily;
+  const hero = n ? `<div class="card hero"><div class="sub" style="color:#ffffffcc">Продолжить обучение</div><h2>${n.t.icon} ${n.t.title}</h2><p>Урок ${n.i + 1} из ${n.t.lessons.length} · ${esc(n.t.lessons[n.i].title)}</p><div class="bar" style="margin-top:10px"><i style="width:${prog(n.t) / n.t.lessons.length * 100}%"></i></div><button class="btn" onclick="openLesson('${n.t.id}',${n.i})">Продолжить →</button></div>` : `<div class="card hero"><h2>🏆 Все курсы пройдены!</h2><p>Выбери другое направление на вкладке «Путь».</p></div>`;
+  return `<div class="row" style="align-items:center;margin-bottom:14px;flex:none">${ava(s.first_name, s.avatar)}<h1 style="margin:0;flex:5">Привет, ${esc(s.first_name)} 👋</h1></div>
+  <div class="row" style="margin-bottom:14px"><div class="chip"><span class="fire">🔥</span> ${curStreak()}<small>Серия</small></div><div class="chip">⭐ ${s.xp}<small>XP</small></div><div class="chip">🏆 ${s.level}<small>Уровень</small></div></div>${hero}
+  <div class="card"><h3>🎯 Задание дня</h3><p class="sub">Реши 3 задания в уроках · +50 XP</p><div class="bar" style="margin-top:10px"><i style="width:${Math.min(d.c, 3) / 3 * 100}%;background:var(--ok)"></i></div><p style="margin-top:6px">${d.done ? 'Выполнено! 🎉' : Math.min(d.c, 3) + ' / 3'}</p></div>
+  <div class="card"><h3>Серия</h3>${week()}</div><div class="card"><h3>Достижения</h3>${ACHIEVEMENTS.slice(0, 3).map(achRow).join('')}</div>`;
+}
+function vPath() {
+  return `<h1>Направления</h1>` + TRACKS.map(t => { const p = prog(t), o = openT === t.id; return `<div class="card"><div class="sec" onclick="openT=${o ? "''" : `'${t.id}'`};render()"><div class="n">${t.icon}</div><div style="flex:1"><b>${t.title}</b>${s.selected_tracks.includes(t.id) ? ' ⭐' : ''}<div>${t.tech.map(x => `<span class="tc">${x}</span>`).join('')}</div></div><b>${p}/${t.lessons.length}</b></div>` + (o ? `<div style="margin-top:12px">` + t.lessons.map((l, i) => { const dn = done(l.id), lk = !open_(t, i); return `<div class="card sec ${dn ? 'done' : ''} ${lk ? 'lock' : ''}" style="background:var(--card2);margin-bottom:8px" onclick="openLesson('${t.id}',${i})"><div class="n">${dn ? '✓' : lk ? '🔒' : i + 1}</div><b>${esc(l.title)}</b></div>`; }).join('') + `</div>` : '') + `</div>`; }).join('');
+}
+function vProj() {
+  const ts = TRACKS.filter(t => s.selected_tracks.includes(t.id));
+  return `<h1>Мои проекты</h1>` + (ts.length ? ts.map(t => { const p = prog(t), pc = Math.round(p / t.lessons.length * 100), n = t.lessons.findIndex(l => !done(l.id)); return `<div class="card"><h3>${t.icon} ${t.project}</h3><div class="bar"><i style="width:${pc}%;background:var(--ok)"></i></div><p class="sub" style="margin:6px 0">${p}/${t.lessons.length} этапов · ${pc}%</p>` + t.lessons.map((l, i) => `<div class="ach ${done(l.id) ? '' : 'off'}" style="margin:4px 0">${done(l.id) ? '✓' : '○'} ${esc(l.title)}</div>`).join('') + (n >= 0 ? `<button class="btn" style="margin-top:10px" onclick="openLesson('${t.id}',${n})">Следующий этап →</button>` : `<p style="margin-top:8px">🏆 Проект завершён!</p>`) + `</div>`; }).join('') : `<div class="card"><p>Выбери цели, чтобы увидеть проекты.</p><button class="btn" style="margin-top:10px" onclick="s.onb=0;ob=2;render()">Выбрать направления</button></div>`);
 }
 function vRank() {
-  let list = FAKE_USERS.map(u => ({ n: u[0], l: u[1], x: u[2] })); if (rk === 'friends') list = list.filter((_, i) => i % 2 === 0);
-  list.push({ n: s.first_name, l: s.level, x: s.xp, me: 1 }); list.sort((a, b) => b.x - a.x);
-  return `<h1>Рейтинг</h1><div class="tabs"><button class="${rk === 'world' ? 'on' : ''}" onclick="rk='world';render()">🌍 Общий</button><button class="${rk === 'friends' ? 'on' : ''}" onclick="rk='friends';render()">👥 Друзья</button></div>` +
-    list.map((u, i) => `<div class="lb ${u.me ? 'me' : ''}"><b>${i + 1}</b>${ava(u.n, u.me ? s.avatar : '')}<div><b>${esc(u.n)}</b><div class="sub" style="${u.me ? 'color:#fff' : ''}">Уровень ${u.l}</div></div><b>${u.x} XP</b></div>`).join('');
+  let l = FAKE_USERS.map(u => ({ n: u[0], l: u[1], x: u[2] })); if (rk === 'friends') l = l.filter((_, i) => i % 2 === 0);
+  l.push({ n: s.first_name, l: s.level, x: s.xp, me: 1 }); l.sort((a, b) => b.x - a.x);
+  return `<h1>Рейтинг</h1><div class="tabs"><button class="${rk === 'world' ? 'on' : ''}" onclick="rk='world';render()">🌍 Общий</button><button class="${rk === 'friends' ? 'on' : ''}" onclick="rk='friends';render()">👥 Друзья</button></div>` + l.map((u, i) => `<div class="lb ${u.me ? 'me' : ''}"><b>${i + 1}</b>${ava(u.n, u.me ? s.avatar : '')}<div><b>${esc(u.n)}</b><div class="sub" style="${u.me ? 'color:#fff' : ''}">Уровень ${u.l}</div></div><b>${u.x} XP</b></div>`).join('');
 }
-const achRow = a => { const on = s.achievements.includes(a.id); return `<div class="ach ${on ? '' : 'off'}" style="margin-bottom:10px"><span class="ic">${a.i}</span><div><b>${a.n}</b><br><small>${a.d}</small></div></div>`; };
 function vMe() {
-  if (sub === 'ach') return `<h1>Достижения</h1><div class="card">${ACHIEVEMENTS.map(achRow).join('')}</div><button class="btn ghost" onclick="sub='';render()">← Назад</button>`;
-  return `<div class="card" style="text-align:center">${ava(s.first_name, s.avatar, 'big')}<h2>${esc(s.first_name)}</h2><p class="sub">${s.username ? '@' + esc(s.username) : ''}</p><p style="margin:8px 0">Level ${s.level} · ${s.xp} XP</p>${xpBar()}</div>
-  <div class="row" style="margin-bottom:14px"><div class="chip">🔥 ${curStreak()}<small>дней</small></div><div class="chip">📚 ${s.completed_lessons.length}<small>уроков</small></div><div class="chip">🏆 ${s.achievements.length}<small>наград</small></div></div>
-  <div class="card"><b>❤️ Жизни: ${s.lives} / ${MAXL}</b><p class="sub">Одна жизнь восстанавливается за 15 минут</p></div>
-  <button class="btn" onclick="sub='ach';render()">Мои достижения</button>`;
+  const techs = TRACKS.filter(t => prog(t) > 0).flatMap(t => t.tech);
+  return `<div class="card" style="text-align:center">${ava(s.first_name, s.avatar, 'big')}<h2>${esc(s.first_name)}</h2><p class="sub">${s.username ? '@' + esc(s.username) : ''}</p><p style="margin:8px 0">Level ${s.level} · ${s.xp} XP</p>${need2()}</div>
+  <div class="row" style="margin-bottom:14px"><div class="chip">🔥 ${curStreak()}<small>дней</small></div><div class="chip">📚 ${s.completed_lessons.length}<small>уроков</small></div><div class="chip">🏗️ ${s.completed_projects.length}<small>проектов</small></div></div>
+  <div class="card"><b>Изученные технологии</b><div>${techs.length ? [...new Set(techs)].map(x => `<span class="tc">${x}</span>`).join('') : '<p class="sub">Пока пусто — пройди первый урок</p>'}</div></div>
+  <div class="card"><b>❤️ Жизни: ${s.lives} / ${MAXL}</b><p class="sub">Жизнь восстанавливается за 15 минут. Теряются только за ошибки в вопросах.</p></div>
+  <div class="card"><h3>Достижения</h3>${ACHIEVEMENTS.map(achRow).join('')}</div>
+  <button class="btn ghost" onclick="ob=1;render()">Изменить уровень и цели</button>`;
 }
 
-// ---------- урок ----------
+// ---- урок ----
 let L = null;
-const TN = { choice: '🎯 Выбери ответ', order: '🧩 Расставь строки', fill: '✍️ Заполни пропуск' };
-const norm = v => String(v).toLowerCase().replace(/\s+/g, '');
-function openLesson(i) {
-  regen();
-  if (i > 0 && !s.completed_lessons.includes(i - 1)) { hap('n', 'warning'); return toast('🔒 Сначала пройди предыдущий урок'); }
-  if (s.lives < 1) { hap('n', 'error'); return toast('💔 Жизни закончились — скоро восстановятся'); }
-  L = { i, k: -1, combo: 0, err: 0, xp: 0, sel: null, ord: [], pool: [], fb: null };
+function link(u) { tg && tg.openLink ? tg.openLink(u) : window.open(u, '_blank'); }
+function openLesson(tid, i) {
+  const t = TRACKS.find(x => x.id === tid); regen();
+  if (!open_(t, i)) { hap('n', 'warning'); return toast('🔒 Сначала пройди предыдущий урок'); }
+  L = { t, l: t.lessons[i], k: 0, h: 0, sel: null, fb: null, err: 0, first: !done(t.lessons[i].id), val: '' };
   $('#lesson').hidden = false; try { tg.BackButton.show(); } catch (e) {} drawL();
 }
 function closeL() { $('#lesson').hidden = true; L = null; try { tg.BackButton.hide(); } catch (e) {} render(); }
 if (tg) tg.BackButton.onClick(closeL);
-function prep() { const t = COURSE[L.i].tasks[L.k]; L.ord = []; if (t.t === 'order') L.pool = t.lines.map((_, j) => j).sort(() => Math.random() - .5); }
-const mult = () => Math.min(3, 1 + Math.floor(L.combo / 3));
+const norm = v => String(v).toLowerCase().replace(/\s+/g, '');
 function drawL() {
-  const les = COURSE[L.i], T = les.tasks, k = L.k; let h = '', f = '';
-  const top = `<div class="lt"><button class="x" onclick="closeL()">✕</button><div class="bar"><i style="width:${Math.max(0, k) / T.length * 100}%"></i></div>${L.combo >= 2 ? `<span class="cmb">🔥 x${mult()}</span>` : ''}<b>❤️ ${s.lives}</b></div>`;
-  if (k < 0) {
-    h = `<div class="tag">Урок ${L.i + 1}</div><h2>${esc(les.title)}</h2><p>${esc(les.text)}</p><pre>${esc(les.code)}</pre><p class="sub">Впереди ${T.length} задания. Отвечай подряд правильно — XP умножается!</p>`;
-    f = `<button class="btn" onclick="L.k=0;prep();drawL()">Начать →</button>`;
+  const T = L.l.steps, st = T[L.k]; let h = '', f = '', fb = L.fb;
+  const top = `<div class="lt"><button class="x" onclick="closeL()">✕</button><div class="bar"><i style="width:${L.k / T.length * 100}%"></i></div><b>❤️ ${s.lives}</b></div>`;
+  const nx = `<button class="btn" onclick="nextS()">Дальше →</button>`;
+  if (st.t === 'info') {
+    h = `<div class="tag">${esc(L.l.title)}</div><h2>${esc(st.h)}</h2><p>${esc(st.p)}</p>` + (st.n && s.pref === 'zero' ? `<div class="fb ok" style="margin-top:10px">💡 ${esc(st.n)}</div>` : '') + (st.items ? `<ol>${st.items.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : '') + (st.p2 ? `<p class="sub">${esc(st.p2)}</p>` : '');
+    f = (st.link ? `<button class="btn ghost" style="margin-bottom:8px" onclick="link('${st.link[1]}')">${st.link[0]} ↗</button>` : '') + nx;
+  } else if (st.t === 'code') {
+    h = `<div class="tag">Разбор кода</div><h3>Нажимай на строки — я объясню</h3><div class="cb"><button class="cp" onclick="navigator.clipboard&&navigator.clipboard.writeText(L.l.steps[L.k].code.join('\\n'));toast('Скопировано')">Копировать</button><pre>${st.code.map((c, i) => `<div class="ln ${L.sel === i ? 'on' : ''}" onclick="L.sel=${i};hap('i','light');drawL()">${esc(c)}</div>`).join('')}</pre></div><div id="ex">${L.sel != null ? esc(st.ex[L.sel]) : 'Выбери строку выше 👆'}</div><div class="sm"><button class="btn ghost" onclick="L.sel=null;$('#ex').textContent=L.l.steps[L.k].why">Почему это нужно?</button></div>`;
+    f = nx;
+  } else if (st.t === 'quiz') {
+    h = `<div class="tag">${st.err ? '🐞 Найди ошибку' : '🎯 Проверь себя'}</div><h3>${esc(st.q)}</h3>` + st.o.map((o, j) => `<button class="opt ${fb ? (j === st.a ? 'ok' : j === L.sel ? 'bad' : '') : ''}" ${fb ? 'disabled' : ''} onclick="L.sel=${j};judge(${j === st.a})">${esc(o)}</button>`).join('');
   } else {
-    const t = T[k], fb = L.fb;
-    h = `<div class="tag">${t.err ? '🐞 Найди ошибку' : t.t === 'fill' && !t.code ? '💻 Мини-задача' : TN[t.t]}</div><h3>${esc(t.q)}</h3>` + (t.code ? `<pre>${esc(t.code)}</pre>` : '');
-    if (t.t === 'choice') h += t.o.map((o, j) => `<button class="opt ${fb ? (j === t.a ? 'ok' : j === L.sel ? 'bad' : '') : ''}" ${fb ? 'disabled' : ''} onclick="pick(${j})">${esc(o)}</button>`).join('');
-    else if (t.t === 'fill') h += `<input id="in" class="inp" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Твой ответ" ${fb ? 'disabled' : ''} value="${esc(L.val || '')}">`;
-    else h += `<div class="zone">${L.ord.map((j, n) => `<button class="ch" ${fb ? 'disabled' : ''} onclick="L.ord.splice(${n},1);drawL()">${esc(t.lines[j])}</button>`).join('') || '<span class="sub">Нажимай на строки по порядку</span>'}</div><div class="pool">${L.pool.filter(j => !L.ord.includes(j)).map(j => `<button class="ch" onclick="L.ord.push(${j});hap('i','light');drawL()">${esc(t.lines[j])}</button>`).join('')}</div>`;
-    if (fb) f = `<div class="fb ${fb.ok ? 'ok' : 'bad'}"><b>${fb.ok ? '✅ Правильно! +' + fb.xp + ' XP' : '❌ Неправильно'}</b><p>${esc(t.e)}</p></div><button class="btn" onclick="next()">${s.lives < 1 && !fb.ok ? 'Выйти' : 'Дальше →'}</button>`;
-    else if (t.t === 'fill') f = `<button class="btn" onclick="L.val=$('#in').value;if(L.val.trim())judge(COURSE[L.i].tasks[L.k].ans.map(norm).includes(norm(L.val)))">Проверить</button>`;
-    else if (t.t === 'order') f = `<button class="btn" ${L.ord.length < t.lines.length ? 'disabled style="opacity:.5"' : ''} onclick="judge(L.ord.every((j,n)=>j===n))">Проверить</button>`;
+    h = `<div class="tag">💻 Практика</div><h3>${esc(st.q)}</h3>` + (st.code ? `<pre>${esc(st.code)}</pre>` : '') + `<input id="in" class="inp" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Пиши код здесь" value="${esc(L.val)}" ${fb && fb.ok ? 'disabled' : ''}>` + (L.msg ? `<div class="fb bad" style="margin-top:10px">${esc(L.msg)}</div>` : '') + (L.h ? `<div class="fb ok" style="margin-top:10px">💡 ${L.h >= 3 ? 'Решение: <code>' + esc(st.sol) + '</code>' : 'Подсказка ' + L.h + ': ' + esc(st.hints[L.h - 1])}</div>` : '');
+    if (!fb) f = `<button class="btn" onclick="L.val=$('#in').value;if(L.val.trim()){const ok=L.l.steps[L.k].ans.map(norm).some(a=>norm(L.val)===a||(a.endsWith('=')&&norm(L.val).startsWith(a)&&norm(L.val).length>a.length));ok?judge(true):wrong()}">Проверить</button><button class="btn ghost" style="margin-top:8px" onclick="L.val=$('#in').value;L.h=Math.min(3,L.h+1);hap('i','light');drawL()">💡 Я застрял${L.h ? ' (' + L.h + '/3)' : ''}</button>`;
   }
+  if (fb) f = `<div class="fb ${fb.ok ? 'ok' : 'bad'}"><b>${fb.ok ? '✅ Правильно! ' + (fb.xp ? '+' + fb.xp + ' XP' : '') : '❌ Неправильно'}</b><p>${esc(st.e || 'Отлично, код верный!')}</p></div><button class="btn" onclick="${s.lives < 1 && !fb.ok ? 'closeL()' : 'nextS()'}">${s.lives < 1 && !fb.ok ? 'Выйти' : 'Дальше →'}</button>`;
   $('#lesson').innerHTML = top + `<div class="lb2">${h}</div><div class="lft">${f}</div>`;
-  const inp = $('#in'); if (inp && !L.fb) inp.focus();
 }
-function pick(j) { L.sel = j; judge(j === COURSE[L.i].tasks[L.k].a); }
+function wrong() { L.msg = 'Пока не то. Проверь кавычки, скобки и регистр букв — или нажми «Я застрял».'; hap('n', 'warning'); drawL(); }
 function judge(ok) {
-  touch();
-  if (ok) { L.combo++; const xp = 10 * mult(); L.xp += xp; s.daily.c++; hap('n', 'success'); gain(xp); L.fb = { ok, xp };
-    if (s.daily.c >= 5 && !s.daily.done) { s.daily.done = true; gain(50); toast('🎯 Задание выполнено! +50 XP'); confetti(30); } }
-  else { L.combo = 0; L.err++; if (s.lives === MAXL) s.livesAt = Date.now(); s.lives--; hap('n', 'error'); L.fb = { ok, xp: 0 }; }
-  save(); drawL();
+  const st = L.l.steps[L.k]; touch(); const w = st.t === 'write'; let xp = 0;
+  if (ok) { xp = L.first ? (w ? 15 : 5) : 0; L.msg = ''; s.daily.c++; if (w) s.codes++; if (st.err) s.bugs++; hap('n', 'success'); if (xp) gain(xp); if (s.daily.c >= 3 && !s.daily.done) { s.daily.done = true; gain(50); toast('🎯 Задание дня выполнено!'); confetti(30); } }
+  else { L.err++; if (s.lives === MAXL) s.livesAt = Date.now(); s.lives--; hap('n', 'error'); }
+  L.fb = { ok, xp }; save(); drawL();
   if (!ok) { const z = $('#lesson'); z.style.animation = 'none'; z.offsetWidth; z.style.animation = 'shake .4s'; }
 }
-function next() {
-  if (s.lives < 1 && !L.fb.ok) { toast('💔 Жизни закончились'); return closeL(); }
-  L.k++; L.fb = null; L.sel = null; L.val = '';
-  if (L.k >= COURSE[L.i].tasks.length) return finish();
-  prep(); drawL();
-}
+function nextS() { L.k++; L.fb = null; L.sel = null; L.h = 0; L.val = ''; L.msg = ''; L.k >= L.l.steps.length ? finish() : drawL(); }
 function finish() {
-  const first = !s.completed_lessons.includes(L.i), perfect = L.err === 0; let b = 30;
-  if (first) { s.completed_lessons.push(L.i); b += 100; }
-  if (perfect) s.perfect++;
-  gain(b); touch(); save(); confetti(70); hap('n', 'success');
-  $('#lesson').innerHTML = `<div class="ov" style="position:static;flex:1"><h1>Урок пройден! 🎉</h1><p>${perfect ? '💯 Без ошибок!' : 'Ошибок: ' + L.err}</p><h2>+${L.xp + b} XP</h2><p class="sub">${first ? '+130 XP за урок и раздел' : 'Повторение: +30 XP'}</p><button class="btn" onclick="closeL()">Продолжить</button></div>`;
+  const first = L.first; let b = 0, proj = false; touch();
+  if (first) { s.completed_lessons.push(L.l.id); b = 30; if (L.t.lessons.every(l => done(l.id)) && !s.completed_projects.includes(L.t.id)) { s.completed_projects.push(L.t.id); b += 100; proj = true; } }
+  if (b) gain(b); checkAch(); save(); confetti(70); hap('n', 'success');
+  $('#lesson').innerHTML = `<div class="ov" style="position:static;flex:1"><h1>Отлично! 🎉</h1><p>Урок «${esc(L.l.title)}» пройден${L.err ? '' : ' без ошибок 💯'}</p><h2>${b ? '+' + b + ' XP' : 'Повторение'}</h2>${proj ? `<p>🏆 Проект «${esc(L.t.project)}» завершён!</p>` : ''}<button class="btn" onclick="closeL()">Продолжить</button></div>`;
 }
 checkAch(); save(); render();
-setInterval(() => { if (!L && $('#lesson').hidden) { regen(); } }, 30000);
